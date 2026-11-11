@@ -9,6 +9,8 @@ Aplicação web simples (PWA) para registar os vinhos que provo: foto do rótulo
 - **Avaliação** de 1 a 5 estrelas.
 - **Lista** com pesquisa, filtro por tipo e ordenação (recentes, melhor avaliados, ano, nome) e média das avaliações.
 - **Navegação** — barra inferior sempre visível (Vinhos / Adicionar); no detalhe e na edição, botões *Anterior* / *Seguinte* (também deslizando o dedo ou com as setas do teclado) para percorrer os registos pela ordem e filtros da lista; aviso antes de sair de um formulário com alterações por guardar.
+- **Foto em ecrã inteiro** — tocar na foto para a ampliar (fecha com ✕, tocando fora, Esc ou o botão "voltar" do telemóvel).
+- **Preferências lembradas** — a ordenação e o filtro por tipo mantêm-se ao voltar a abrir a app.
 - **Funciona offline** e pode ser **instalada no ecrã inicial** do telemóvel.
 - **Cópia de segurança** — exportar/importar tudo (incluindo fotos) num ficheiro JSON, pelo menu ⋮.
 

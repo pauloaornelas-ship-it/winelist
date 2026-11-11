@@ -185,7 +185,10 @@
     if (!w) return go('#/', { replace: true });
     const field = (label, value) => (value ? `<div class="field"><span>${label}</span><strong>${esc(value)}</strong></div>` : '');
     $('#detail').innerHTML = `
-      ${w.photo ? `<img class="detail-photo" src="${blobUrl(w.photo)}" alt="Foto de ${esc(w.name)}">` : ''}
+      ${w.photo ? `<button type="button" class="photo-zoom" data-zoom aria-label="Ver foto em ecrã inteiro">
+        <img class="detail-photo" src="${blobUrl(w.photo)}" alt="Foto de ${esc(w.name)}">
+        <span class="zoom-hint" aria-hidden="true">⤢ Ampliar</span>
+      </button>` : ''}
       <div class="detail-body">
         <h2>${esc(w.name)}</h2>
         <div class="rating-big">${starsHtml(w.rating, 'big')}</div>
@@ -390,6 +393,42 @@
   }
 
   // ---------- arranque ----------
+  // ---------- preferências (ordenação e filtro) ----------
+  const PREFS_KEY = 'winelist-prefs';
+  function savePrefs() {
+    try {
+      localStorage.setItem(PREFS_KEY, JSON.stringify({ sort: $('#sort').value, type: $('#filter-type').value }));
+    } catch { /* armazenamento indisponível: ignora */ }
+  }
+  function loadPrefs() {
+    let prefs = {};
+    try { prefs = JSON.parse(localStorage.getItem(PREFS_KEY)) || {}; } catch { /* ignora */ }
+    const apply = (sel, value) => {
+      if (value != null && [...sel.options].some((o) => o.value === value)) sel.value = value;
+    };
+    apply($('#sort'), prefs.sort);
+    apply($('#filter-type'), prefs.type);
+  }
+
+  // ---------- foto em ecrã inteiro ----------
+  const viewer = $('#viewer');
+  function openViewer(src, alt) {
+    $('#viewer-img').src = src;
+    $('#viewer-img').alt = alt || '';
+    viewer.hidden = false;
+    document.body.classList.add('no-scroll');
+    history.pushState({ viewer: true }, '', location.hash); // "voltar" do telemóvel fecha a foto
+    $('#viewer-close').focus();
+  }
+  function hideViewer() {
+    viewer.hidden = true;
+    document.body.classList.remove('no-scroll');
+  }
+  function closeViewer() {
+    if (viewer.hidden) return;
+    if (history.state && history.state.viewer) history.back(); else hideViewer();
+  }
+
   function initTypeFilter() {
     const used = new Set(wines.map((w) => w.type).filter(Boolean));
     const all = [...TYPES, ...[...used].filter((t) => !TYPES.includes(t))];
@@ -420,8 +459,19 @@
     $('#btn-clear-filters').onclick = () => {
       $('#search').value = '';
       $('#filter-type').value = '';
+      savePrefs();
       renderList();
     };
+
+    // Foto em ecrã inteiro (detalhe e pré-visualização do formulário).
+    document.addEventListener('click', (e) => {
+      const z = e.target.closest('[data-zoom]');
+      if (z) { const img = z.querySelector('img'); openViewer(img.src, img.alt); }
+    });
+    $('#photo-preview').addEventListener('click', (e) => openViewer(e.target.src, 'Foto do rótulo'));
+    $('#viewer-close').onclick = closeViewer;
+    viewer.addEventListener('click', (e) => { if (e.target === viewer) closeViewer(); });
+    window.addEventListener('popstate', () => { if (!viewer.hidden) hideViewer(); });
     $('#btn-cancel').onclick = () => go(backTarget(), { replace: true });
     $('#btn-back').onclick = () => go(backTarget(), { replace: true });
 
@@ -435,6 +485,7 @@
 
     // Setas do teclado no detalhe.
     document.addEventListener('keydown', (e) => {
+      if (!viewer.hidden) { if (e.key === 'Escape') closeViewer(); return; }
       if (currentView !== 'detail' || e.target.closest('input, textarea, select')) return;
       if (e.key === 'ArrowLeft') adjacent(-1);
       if (e.key === 'ArrowRight') adjacent(1);
@@ -459,8 +510,8 @@
     });
     ['input', 'change'].forEach((ev) => {
       $('#search').addEventListener(ev, renderList);
-      $('#filter-type').addEventListener(ev, renderList);
-      $('#sort').addEventListener(ev, renderList);
+      $('#filter-type').addEventListener(ev, () => { savePrefs(); renderList(); });
+      $('#sort').addEventListener(ev, () => { savePrefs(); renderList(); });
     });
 
     $('#btn-menu').onclick = (e) => { e.stopPropagation(); $('#menu').hidden = !$('#menu').hidden; };
@@ -480,6 +531,7 @@
       toast('Armazenamento indisponível neste navegador');
     }
     initTypeFilter();
+    loadPrefs();
     route();
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
     if ('serviceWorker' in navigator && location.protocol !== 'file:') {
