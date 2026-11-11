@@ -6,6 +6,7 @@
   --topbar-text: #163f78;
   --star: #a8660b;           /* estrelas: âmbar escuro, legível sobre branco */
   --star-off: #7f95b0;
+  --fav: #c2185b;            /* coração dos favoritos (5.9:1 sobre branco) */
   --bg: #f4f8fd;
   --card: #ffffff;
   --text: #1b2a3a;
@@ -25,6 +26,7 @@
     --topbar-text: #e6eef8;
     --star: #f2b84b;
     --star-off: #5d7290;
+    --fav: #ff80ab;
     --bg: #0f1a2a;
     --card: #16233a;
     --text: #e6eef8;
@@ -79,6 +81,12 @@ main { max-width: 760px; margin: 0 auto; }
 .toolbar { display: grid; gap: 8px; margin-bottom: 12px; }
 .filters { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .stats { margin: 0; color: var(--muted); font-size: .85rem; }
+.toolbar-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.chip {
+  min-height: 40px; padding: 6px 14px; border-radius: 20px; cursor: pointer; font: inherit; font-size: .9rem; font-weight: 600;
+  background: var(--card); color: var(--primary-strong); border: 1px solid var(--border);
+}
+.chip[aria-pressed="true"] { background: var(--primary-soft); border-color: var(--primary); color: var(--fav); }
 
 input, select, textarea {
   width: 100%; font: inherit; color: var(--text);
@@ -176,6 +184,7 @@ form label { display: grid; gap: 6px; font-size: .9rem; color: var(--muted); }
   position: fixed; left: 50%; bottom: calc(140px + env(safe-area-inset-bottom)); transform: translateX(-50%);
   background: var(--primary-strong); color: var(--card); padding: 10px 18px; border-radius: 20px; z-index: 30;
   box-shadow: 0 4px 12px rgba(0,0,0,.3); font-size: .95rem;
+  white-space: nowrap; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis;
 }
 
 /* Navegação inferior */
@@ -225,3 +234,17 @@ form label { display: grid; gap: 6px; font-size: .9rem; color: var(--muted); }
   background: rgba(255,255,255,.18); color: #fff; font-size: 1.4rem;
 }
 body.no-scroll { overflow: hidden; }
+
+/* Favoritos */
+.wine-item { position: relative; }
+.wine-item .wine-card { padding-right: 52px; }
+.fav-btn {
+  background: none; border: 0; cursor: pointer; line-height: 1; color: var(--star-off);
+  min-width: 44px; min-height: 44px; border-radius: 50%; font-size: 1.6rem;
+}
+.fav-btn.on { color: var(--fav); }
+.fav-btn:active { transform: scale(.9); }
+.fav-card { position: absolute; top: 6px; right: 6px; z-index: 1; }
+.title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-top: 16px; }
+.title-row h2 { margin: 6px 0 0; }
+.fav-detail { font-size: 2rem; min-width: 48px; min-height: 48px; flex-shrink: 0; }

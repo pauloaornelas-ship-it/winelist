@@ -43,7 +43,10 @@
             <option value="name-asc">Nome (A–Z)</option>
           </select>
         </div>
-        <p id="stats" class="stats"></p>
+        <div class="toolbar-row">
+          <button type="button" id="filter-fav" class="chip" aria-pressed="false">♡ Só favoritos</button>
+          <p id="stats" class="stats"></p>
+        </div>
       </div>
       <ul id="wine-list" class="wine-list"></ul>
       <div id="empty" class="empty" hidden>
@@ -143,6 +146,10 @@
 
         <label class="checkbox">
           <input name="buyAgain" type="checkbox"> Voltaria a comprar
+        </label>
+
+        <label class="checkbox">
+          <input name="favorite" type="checkbox"> Favorito ♥
         </label>
 
         <div class="form-actions sticky">

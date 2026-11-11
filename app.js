@@ -14,6 +14,7 @@
   let dirty = false;           // formulário com alterações por guardar
   let currentHash = location.hash;
   let currentView = 'list';
+  let favOnly = false;         // filtro "Só favoritos"
   const urlCache = new Map();  // Blob -> object URL
 
   // ---------- utilitários ----------
@@ -139,6 +140,7 @@
 
     let items = wines.filter((w) => {
       if (type && w.type !== type) return false;
+      if (favOnly && !w.favorite) return false;
       if (!q) return true;
       return [w.name, w.producer, w.region, w.country, w.grapes, w.notes, w.whereToBuy, w.year]
         .some((v) => String(v ?? '').toLowerCase().includes(q));
@@ -158,7 +160,8 @@
     const items = visibleWines();
     const list = $('#wine-list');
     list.innerHTML = items.map((w) => `
-      <li>
+      <li class="wine-item">
+        ${favButton(w, 'card')}
         <a href="#/vinho/${w.id}" class="wine-card">
           ${w.thumb ? `<img src="${blobUrl(w.thumb)}" alt="" loading="lazy">` : `<div class="no-photo">🍷</div>`}
           <div class="wine-info">
@@ -174,9 +177,41 @@
     $('#no-results').hidden = !(wines.length > 0 && items.length === 0);
     const rated = wines.filter((w) => w.rating);
     const avg = rated.length ? (rated.reduce((s, w) => s + w.rating, 0) / rated.length).toFixed(1) : null;
+    const favs = wines.filter((w) => w.favorite).length;
     $('#stats').textContent = wines.length
-      ? `${items.length === wines.length ? wines.length : `${items.length} de ${wines.length}`} ${wines.length === 1 ? 'vinho' : 'vinhos'}${avg ? ` · média ${avg} ★` : ''}`
+      ? `${items.length === wines.length ? wines.length : `${items.length} de ${wines.length}`} ${wines.length === 1 ? 'vinho' : 'vinhos'}${favs ? ` · ${favs} ♥` : ''}${avg ? ` · média ${avg} ★` : ''}`
       : '';
+    const chip = $('#filter-fav');
+    chip.setAttribute('aria-pressed', favOnly);
+    chip.textContent = favOnly ? '♥ Só favoritos' : '♡ Só favoritos';
+    chip.hidden = wines.length === 0;
+  }
+
+  // ---------- favoritos ----------
+  function favButton(w, where) {
+    const on = !!w.favorite;
+    return `<button type="button" class="fav-btn fav-${where}${on ? ' on' : ''}" data-fav="${w.id}"
+      aria-pressed="${on}" aria-label="${on ? 'Remover dos favoritos' : 'Marcar como favorito'}"
+      title="${on ? 'Remover dos favoritos' : 'Marcar como favorito'}">${on ? '♥' : '♡'}</button>`;
+  }
+
+  async function toggleFavorite(id) {
+    const w = wines.find((x) => x.id === id);
+    if (!w) return;
+    const updated = { ...w, favorite: !w.favorite, updatedAt: Date.now() };
+    try {
+      await WineDB.put(updated);
+    } catch (err) {
+      console.error(err);
+      return toast('Erro ao guardar');
+    }
+    wines[wines.indexOf(w)] = updated;
+    toast(updated.favorite ? 'Adicionado aos favoritos ♥' : 'Removido dos favoritos');
+    if (currentView === 'list') renderList();
+    document.querySelectorAll(`[data-fav="${id}"]`).forEach((b) => {
+      const where = b.classList.contains('fav-detail') ? 'detail' : 'card';
+      b.outerHTML = favButton(updated, where);
+    });
   }
 
   // ---------- detalhe ----------
@@ -190,7 +225,10 @@
         <span class="zoom-hint" aria-hidden="true">⤢ Ampliar</span>
       </button>` : ''}
       <div class="detail-body">
-        <h2>${esc(w.name)}</h2>
+        <div class="title-row">
+          <h2>${esc(w.name)}</h2>
+          ${favButton(w, 'detail')}
+        </div>
         <div class="rating-big">${starsHtml(w.rating, 'big')}</div>
         <div class="fields">
           ${field('Ano', w.year)}
@@ -318,6 +356,7 @@
       whereToBuy: data.whereToBuy.trim(),
       notes: data.notes.trim(),
       buyAgain: form.elements.buyAgain.checked,
+      favorite: form.elements.favorite.checked,
       rating: currentRating,
       updatedAt: Date.now(),
     };
@@ -397,7 +436,7 @@
   const PREFS_KEY = 'winelist-prefs';
   function savePrefs() {
     try {
-      localStorage.setItem(PREFS_KEY, JSON.stringify({ sort: $('#sort').value, type: $('#filter-type').value }));
+      localStorage.setItem(PREFS_KEY, JSON.stringify({ sort: $('#sort').value, type: $('#filter-type').value, favOnly }));
     } catch { /* armazenamento indisponível: ignora */ }
   }
   function loadPrefs() {
@@ -408,6 +447,7 @@
     };
     apply($('#sort'), prefs.sort);
     apply($('#filter-type'), prefs.type);
+    favOnly = prefs.favOnly === true;
   }
 
   // ---------- foto em ecrã inteiro ----------
@@ -459,9 +499,17 @@
     $('#btn-clear-filters').onclick = () => {
       $('#search').value = '';
       $('#filter-type').value = '';
+      favOnly = false;
       savePrefs();
       renderList();
     };
+
+    // Favoritos: coração na lista e no detalhe, e filtro "Só favoritos".
+    document.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-fav]');
+      if (b) { e.preventDefault(); toggleFavorite(b.dataset.fav); }
+    });
+    $('#filter-fav').onclick = () => { favOnly = !favOnly; savePrefs(); renderList(); };
 
     // Foto em ecrã inteiro (detalhe e pré-visualização do formulário).
     document.addEventListener('click', (e) => {
