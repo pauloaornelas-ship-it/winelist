@@ -26,6 +26,10 @@
     return urlCache.get(blob);
   };
   const stars = (n) => '★'.repeat(n || 0) + '☆'.repeat(5 - (n || 0));
+  const RATING_TEXT = ['Sem avaliação', 'Fraco', 'Razoável', 'Bom', 'Muito bom', 'Excelente'];
+  const starsHtml = (n, cls = '') => (n
+    ? `<span class="stars ${cls}" role="img" aria-label="${n} de 5 estrelas: ${RATING_TEXT[n]}">${stars(n)}</span>`
+    : `<span class="stars none">${RATING_TEXT[0]}</span>`);
   const fmtDate = (d) => (d ? new Date(d + 'T00:00:00').toLocaleDateString('pt-PT', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
   const fmtPrice = (p) => (p || p === 0 ? Number(p).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' }) : '');
 
@@ -161,12 +165,13 @@
             <strong>${esc(w.name)}</strong>
             <span class="meta">${esc([w.year, w.type, w.region].filter(Boolean).join(' · '))}</span>
             ${w.producer ? `<span class="meta">${esc(w.producer)}</span>` : ''}
-            <span class="stars" aria-label="${w.rating || 0} de 5">${stars(w.rating)}</span>
+            ${starsHtml(w.rating)}
           </div>
         </a>
       </li>`).join('');
 
     $('#empty').hidden = wines.length > 0;
+    $('#no-results').hidden = !(wines.length > 0 && items.length === 0);
     const rated = wines.filter((w) => w.rating);
     const avg = rated.length ? (rated.reduce((s, w) => s + w.rating, 0) / rated.length).toFixed(1) : null;
     $('#stats').textContent = wines.length
@@ -183,7 +188,7 @@
       ${w.photo ? `<img class="detail-photo" src="${blobUrl(w.photo)}" alt="Foto de ${esc(w.name)}">` : ''}
       <div class="detail-body">
         <h2>${esc(w.name)}</h2>
-        <div class="stars big">${stars(w.rating)}</div>
+        <div class="rating-big">${starsHtml(w.rating, 'big')}</div>
         <div class="fields">
           ${field('Ano', w.year)}
           ${field('Tipo', w.type)}
@@ -220,6 +225,7 @@
       b.classList.toggle('on', i < n);
       b.setAttribute('aria-checked', i + 1 === n);
     });
+    $('#rating-text').textContent = RATING_TEXT[n];
   }
 
   function setPreview(blob) {
@@ -242,6 +248,7 @@
       else el.value = w[el.name] ?? '';
     }
     setRating(w.rating || 0);
+    setYearError('');
     setPreview(w.photo || null);
     fillDatalists();
     $('#form-pager').innerHTML = wine ? pager(wine.id, 'edit') : '';
@@ -254,6 +261,13 @@
       const values = [...new Set(wines.map((w) => w[key]).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt'));
       $(`#dl-${key}`).innerHTML = values.map((v) => `<option value="${esc(v)}">`).join('');
     }
+  }
+
+  function setYearError(msg) {
+    const el = $('#year-error');
+    el.textContent = msg;
+    el.hidden = !msg;
+    form.elements.year.setAttribute('aria-invalid', msg ? 'true' : 'false');
   }
 
   async function onPhotoChosen(e) {
@@ -279,11 +293,19 @@
       form.elements.name.focus();
       return toast('Indique o nome do vinho');
     }
+    const year = data.year ? parseInt(data.year, 10) : null;
+    const maxYear = new Date().getFullYear() + 1;
+    if (data.year && (!year || year < 1900 || year > maxYear)) {
+      setYearError(`Indique um ano entre 1900 e ${maxYear}.`);
+      form.elements.year.focus();
+      return;
+    }
+    setYearError('');
     const wine = {
       ...(editing || { id: uid(), createdAt: Date.now() }),
       name: data.name,
       producer: data.producer.trim(),
-      year: data.year ? parseInt(data.year, 10) : null,
+      year,
       type: data.type,
       region: data.region.trim(),
       country: data.country.trim(),
@@ -394,7 +416,12 @@
     $('#photo-gallery').onchange = onPhotoChosen;
     $('#photo-remove').onclick = () => { pendingPhoto = null; dirty = true; setPreview(null); };
     form.onsubmit = onSubmit;
-    form.addEventListener('input', () => (dirty = true));
+    form.addEventListener('input', (e) => { dirty = true; if (e.target.name === 'year') setYearError(''); });
+    $('#btn-clear-filters').onclick = () => {
+      $('#search').value = '';
+      $('#filter-type').value = '';
+      renderList();
+    };
     $('#btn-cancel').onclick = () => go(backTarget(), { replace: true });
     $('#btn-back').onclick = () => go(backTarget(), { replace: true });
 

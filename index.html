@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#6b1d2f">
+  <meta name="theme-color" content="#dcebfc">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Os Meus Vinhos">
   <title>Os Meus Vinhos</title>
@@ -49,7 +49,12 @@
       <div id="empty" class="empty" hidden>
         <div class="empty-icon">🍷</div>
         <p>Ainda não registou nenhum vinho.</p>
-        <p>Toque em <strong>+</strong> para adicionar o primeiro.</p>
+        <p>Toque em <strong>＋ Adicionar</strong>, em baixo, para registar o primeiro.</p>
+      </div>
+      <div id="no-results" class="empty" hidden>
+        <div class="empty-icon">🔍</div>
+        <p>Nenhum vinho corresponde à pesquisa ou ao filtro.</p>
+        <button type="button" id="btn-clear-filters" class="btn btn-secondary">Limpar pesquisa e filtros</button>
       </div>
     </section>
 
@@ -84,13 +89,18 @@
           <input name="name" required autocomplete="off" placeholder="ex.: Quinta do Crasto Reserva">
         </label>
 
-        <label>Avaliação
-          <div class="rating-input" id="rating-input" role="radiogroup" aria-label="Avaliação"></div>
-        </label>
+        <div class="form-group">
+          <span id="rating-label">Avaliação</span>
+          <div class="rating-row">
+            <div class="rating-input" id="rating-input" role="radiogroup" aria-labelledby="rating-label"></div>
+            <span id="rating-text" class="rating-text" aria-live="polite"></span>
+          </div>
+        </div>
 
         <div class="row">
           <label>Ano (colheita)
-            <input name="year" type="number" inputmode="numeric" min="1900" max="2100" placeholder="ex.: 2019">
+            <input name="year" type="number" inputmode="numeric" min="1900" max="2100" placeholder="ex.: 2019" aria-describedby="year-error">
+            <span id="year-error" class="field-error" hidden></span>
           </label>
           <label>Tipo
             <select name="type"></select>
@@ -135,7 +145,7 @@
           <input name="buyAgain" type="checkbox"> Voltaria a comprar
         </label>
 
-        <div class="form-actions">
+        <div class="form-actions sticky">
           <button type="button" id="btn-cancel" class="btn btn-ghost">Cancelar</button>
           <button type="submit" class="btn">Guardar</button>
         </div>

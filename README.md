@@ -40,6 +40,6 @@ E abrir <http://localhost:8000>.
 | `index.html` | Estrutura da app (lista, detalhe, formulário) |
 | `app.js` | Lógica: navegação, formulário, fotos, pesquisa, exportar/importar |
 | `db.js` | Armazenamento local em IndexedDB |
-| `styles.css` | Estilos (com modo escuro automático) |
+| `styles.css` | Estilos (tons de azul claro, com modo escuro automático) |
 | `sw.js` | Service worker para funcionar offline |
 | `manifest.webmanifest`, `icon.svg` | Instalação como app |
