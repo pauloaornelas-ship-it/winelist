@@ -136,7 +136,7 @@
     let items = wines.filter((w) => {
       if (type && w.type !== type) return false;
       if (!q) return true;
-      return [w.name, w.producer, w.region, w.country, w.grapes, w.notes, w.place, w.year]
+      return [w.name, w.producer, w.region, w.country, w.grapes, w.notes, w.whereToBuy, w.year]
         .some((v) => String(v ?? '').toLowerCase().includes(q));
     });
 
@@ -193,7 +193,7 @@
           ${field('Castas', w.grapes)}
           ${field('Preço', fmtPrice(w.price))}
           ${field('Provado em', fmtDate(w.date))}
-          ${field('Onde / com quem', w.place)}
+          ${field('Onde comprar', w.whereToBuy)}
           ${w.buyAgain ? field('Voltaria a comprar', 'Sim 👍') : ''}
         </div>
         ${w.notes ? `<h3>Notas</h3><p class="notes">${esc(w.notes)}</p>` : ''}
@@ -250,7 +250,7 @@
   }
 
   function fillDatalists() {
-    for (const key of ['producer', 'region', 'country']) {
+    for (const key of ['producer', 'region', 'country', 'whereToBuy']) {
       const values = [...new Set(wines.map((w) => w[key]).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt'));
       $(`#dl-${key}`).innerHTML = values.map((v) => `<option value="${esc(v)}">`).join('');
     }
@@ -290,12 +290,13 @@
       grapes: data.grapes.trim(),
       price: data.price !== '' ? parseFloat(data.price) : null,
       date: data.date,
-      place: data.place.trim(),
+      whereToBuy: data.whereToBuy.trim(),
       notes: data.notes.trim(),
       buyAgain: form.elements.buyAgain.checked,
       rating: currentRating,
       updatedAt: Date.now(),
     };
+    delete wine.place; // campo antigo "Onde / com quem", já não usado
     if (pendingPhoto === null) { wine.photo = null; wine.thumb = null; }
     else if (pendingPhoto) { wine.photo = pendingPhoto.photo; wine.thumb = pendingPhoto.thumb; }
 
