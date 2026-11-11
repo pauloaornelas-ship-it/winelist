@@ -46,3 +46,12 @@ E abrir <http://localhost:8000>.
 | `styles.css` | Estilos (tons de azul claro, com modo escuro automático) |
 | `sw.js` | Service worker para funcionar offline |
 | `manifest.webmanifest`, `icon.svg` | Instalação como app |
+
+## Publicar uma nova versão
+
+Depois de alterar a app, aumente o número da versão em dois sítios (devem ficar iguais):
+
+- `index.html` — o `?v=` nos ficheiros `styles.css`, `db.js` e `app.js`;
+- `sw.js` — a constante `VERSION`.
+
+Assim o telemóvel descarrega todos os ficheiros novos juntos e não mistura versões.

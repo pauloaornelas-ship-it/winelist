@@ -334,6 +334,8 @@
       form.elements.name.focus();
       return toast('Indique o nome do vinho');
     }
+    // Se o campo não existir (ex.: página de uma versão antiga em cache), mantém o valor guardado.
+    const checked = (n) => (form.elements[n] ? form.elements[n].checked : !!(editing && editing[n]));
     const year = data.year ? parseInt(data.year, 10) : null;
     const maxYear = new Date().getFullYear() + 1;
     if (data.year && (!year || year < 1900 || year > maxYear)) {
@@ -355,8 +357,8 @@
       date: data.date,
       whereToBuy: data.whereToBuy.trim(),
       notes: data.notes.trim(),
-      buyAgain: form.elements.buyAgain.checked,
-      favorite: form.elements.favorite.checked,
+      buyAgain: checked('buyAgain'),
+      favorite: checked('favorite'),
       rating: currentRating,
       updatedAt: Date.now(),
     };
@@ -583,7 +585,13 @@
     route();
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
     if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+      const hadController = !!navigator.serviceWorker.controller;
       navigator.serviceWorker.register('sw.js').catch(() => {});
+      // Quando uma nova versão da app fica ativa, recarrega para usar todos os ficheiros novos
+      // (exceto se houver um formulário com alterações por guardar).
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (hadController && !(currentView === 'form' && dirty)) location.reload();
+      });
     }
   }
 

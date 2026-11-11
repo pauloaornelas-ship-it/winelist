@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=8">
 </head>
 <body>
   <header class="topbar">
@@ -177,7 +177,8 @@
 
   <div id="toast" class="toast" hidden></div>
 
-  <script src="db.js"></script>
-  <script src="app.js"></script>
+  <!-- Ao alterar a app, aumentar ?v= aqui e VERSION em sw.js (garante que todos os ficheiros são da mesma versão). -->
+  <script src="db.js?v=8"></script>
+  <script src="app.js?v=8"></script>
 </body>
 </html>
