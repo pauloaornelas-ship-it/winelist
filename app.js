@@ -188,7 +188,8 @@
           ${field('Ano', w.year)}
           ${field('Tipo', w.type)}
           ${field('Produtor', w.producer)}
-          <div class="field"><span>Região</span><strong>${esc(w.region || '—')}</strong></div>
+          ${field('Região', w.region)}
+          ${field('País', w.country)}
           ${field('Castas', w.grapes)}
           ${field('Preço', fmtPrice(w.price))}
           ${field('Provado em', fmtDate(w.date))}

@@ -1,5 +1,5 @@
 // Service worker: permite usar a app sem ligação à internet.
-const CACHE = 'winelist-v4';
+const CACHE = 'winelist-v3';
 const ASSETS = ['./', 'index.html', 'styles.css', 'app.js', 'db.js', 'manifest.webmanifest', 'icon.svg'];
 
 self.addEventListener('install', (e) => {
