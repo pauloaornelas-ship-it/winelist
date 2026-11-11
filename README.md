@@ -8,6 +8,7 @@ Aplicação web simples (PWA) para registar os vinhos que provo: foto do rótulo
 - **Atributos** — nome, ano (colheita), tipo (tinto, branco, rosé, verde, espumante, porto…), produtor, região, país, castas, preço, data da prova, onde/com quem, notas e "voltaria a comprar".
 - **Avaliação** de 1 a 5 estrelas.
 - **Lista** com pesquisa, filtro por tipo e ordenação (recentes, melhor avaliados, ano, nome) e média das avaliações.
+- **Navegação** — barra inferior sempre visível (Vinhos / Adicionar); no detalhe e na edição, botões *Anterior* / *Seguinte* (também deslizando o dedo ou com as setas do teclado) para percorrer os registos pela ordem e filtros da lista; aviso antes de sair de um formulário com alterações por guardar.
 - **Funciona offline** e pode ser **instalada no ecrã inicial** do telemóvel.
 - **Cópia de segurança** — exportar/importar tudo (incluindo fotos) num ficheiro JSON, pelo menu ⋮.
 

@@ -11,6 +11,9 @@
   let editing = null;          // vinho em edição (ou null para novo)
   let pendingPhoto;            // { photo, thumb } | null (remover) | undefined (sem alteração)
   let currentRating = 0;
+  let dirty = false;           // formulário com alterações por guardar
+  let currentHash = location.hash;
+  let currentView = 'list';
   const urlCache = new Map();  // Blob -> object URL
 
   // ---------- utilitários ----------
@@ -57,14 +60,39 @@
 
   // ---------- navegação ----------
   function show(name, title, back) {
+    currentView = name;
     Object.entries(views).forEach(([k, el]) => (el.hidden = k !== name));
     $('#title').textContent = title;
     $('#btn-back').hidden = !back;
     $('#menu').hidden = true;
+    const navKey = name === 'list' ? 'list' : location.hash === '#/novo' ? 'new' : '';
+    document.querySelectorAll('[data-nav]').forEach((a) => a.classList.toggle('active', a.dataset.nav === navKey));
     window.scrollTo(0, 0);
   }
 
-  async function route() {
+  const confirmDiscard = () => !dirty || confirm('Tem alterações por guardar. Sair sem guardar?');
+
+  // Navega sem acumular histórico (ex.: anterior/seguinte), para o "voltar" regressar à lista.
+  function go(hash, { replace = false } = {}) {
+    if (hash === location.hash) return route();
+    if (replace) location.replace(hash); else location.hash = hash;
+  }
+
+  // Destino do botão "voltar" de cada ecrã.
+  function backTarget() {
+    const [, page, id] = location.hash.split('/');
+    if (page === 'editar' && id) return `#/vinho/${id}`;
+    return '#/';
+  }
+
+  function route() {
+    // Proteção contra perda de alterações ao sair do formulário.
+    if (currentView === 'form' && location.hash !== currentHash && !confirmDiscard()) {
+      history.replaceState(null, '', currentHash || '#/');
+      return;
+    }
+    dirty = false;
+    currentHash = location.hash;
     const [, page, id] = location.hash.split('/');
     if (page === 'novo') return openForm(null);
     if (page === 'editar' && id) return openForm(wines.find((w) => w.id === id));
@@ -73,8 +101,34 @@
     show('list', 'Os Meus Vinhos', false);
   }
 
+  // ---------- anterior / seguinte ----------
+  function pager(id, mode) {
+    const ids = visibleWines().map((w) => w.id);
+    const i = ids.indexOf(id);
+    if (i < 0) return '';
+    const prev = ids[i - 1], next = ids[i + 1];
+    const href = (x) => (mode === 'edit' ? `#/editar/${x}` : `#/vinho/${x}`);
+    const btn = (x, label, cls) => x
+      ? `<a class="pager-btn ${cls}" href="${href(x)}" data-pager>${label}</a>`
+      : `<span class="pager-btn ${cls} disabled" aria-disabled="true">${label}</span>`;
+    return `<div class="pager">
+      ${btn(prev, '‹ Anterior', 'prev')}
+      <span class="pager-pos">${i + 1} de ${ids.length}</span>
+      ${btn(next, 'Seguinte ›', 'next')}
+    </div>`;
+  }
+
+  function adjacent(step) {
+    const [, page, id] = location.hash.split('/');
+    if (!id || (page !== 'vinho' && page !== 'editar')) return;
+    const ids = visibleWines().map((w) => w.id);
+    const target = ids[ids.indexOf(id) + step];
+    if (target) go(`#/${page}/${target}`, { replace: true });
+  }
+
   // ---------- lista ----------
-  function renderList() {
+  // Vinhos visíveis segundo a pesquisa, filtro e ordenação atuais (usado também no anterior/seguinte).
+  function visibleWines() {
     const q = $('#search').value.trim().toLowerCase();
     const type = $('#filter-type').value;
     const sort = $('#sort').value;
@@ -93,8 +147,11 @@
       'year-asc': (a, b) => (a.year || 9999) - (b.year || 9999),
       'name-asc': (a, b) => a.name.localeCompare(b.name, 'pt'),
     }[sort];
-    items.sort(cmp);
+    return items.sort(cmp);
+  }
 
+  function renderList() {
+    const items = visibleWines();
     const list = $('#wine-list');
     list.innerHTML = items.map((w) => `
       <li>
@@ -120,7 +177,7 @@
   // ---------- detalhe ----------
   function openDetail(id) {
     const w = wines.find((x) => x.id === id);
-    if (!w) return (location.hash = '#/');
+    if (!w) return go('#/', { replace: true });
     const field = (label, value) => (value ? `<div class="field"><span>${label}</span><strong>${esc(value)}</strong></div>` : '');
     $('#detail').innerHTML = `
       ${w.photo ? `<img class="detail-photo" src="${blobUrl(w.photo)}" alt="Foto de ${esc(w.name)}">` : ''}
@@ -150,8 +207,9 @@
       await WineDB.remove(w.id);
       wines = wines.filter((x) => x.id !== w.id);
       toast('Vinho apagado');
-      location.hash = '#/';
+      go('#/', { replace: true });
     };
+    $('#detail-pager').innerHTML = pager(w.id, 'detail');
     show('detail', 'Detalhe', true);
   }
 
@@ -173,7 +231,7 @@
   }
 
   function openForm(wine) {
-    if (location.hash.startsWith('#/editar') && !wine) return (location.hash = '#/');
+    if (location.hash.startsWith('#/editar') && !wine) return go('#/', { replace: true });
     editing = wine || null;
     pendingPhoto = undefined;
     form.reset();
@@ -186,6 +244,8 @@
     setRating(w.rating || 0);
     setPreview(w.photo || null);
     fillDatalists();
+    $('#form-pager').innerHTML = wine ? pager(wine.id, 'edit') : '';
+    dirty = false;
     show('form', wine ? 'Editar vinho' : 'Novo vinho', true);
   }
 
@@ -203,6 +263,7 @@
     try {
       const [photo, thumb] = await Promise.all([resizeImage(file, MAX_PHOTO), resizeImage(file, MAX_THUMB, 0.8)]);
       pendingPhoto = { photo, thumb };
+      dirty = true;
       setPreview(photo);
     } catch (err) {
       console.error(err);
@@ -247,7 +308,9 @@
     const i = wines.findIndex((w) => w.id === wine.id);
     if (i >= 0) wines[i] = wine; else wines.push(wine);
     toast('Vinho guardado');
-    location.hash = `#/vinho/${wine.id}`;
+    dirty = false;
+    currentView = 'saving';
+    go(`#/vinho/${wine.id}`, { replace: true });
   }
 
   // ---------- exportar / importar ----------
@@ -322,17 +385,50 @@
       b.textContent = '★';
       b.setAttribute('role', 'radio');
       b.setAttribute('aria-label', `${i} estrela${i > 1 ? 's' : ''}`);
-      b.onclick = () => setRating(currentRating === i ? 0 : i);
+      b.onclick = () => { setRating(currentRating === i ? 0 : i); dirty = true; };
       ri.appendChild(b);
     }
 
     $('#photo-camera').onchange = onPhotoChosen;
     $('#photo-gallery').onchange = onPhotoChosen;
-    $('#photo-remove').onclick = () => { pendingPhoto = null; setPreview(null); };
+    $('#photo-remove').onclick = () => { pendingPhoto = null; dirty = true; setPreview(null); };
     form.onsubmit = onSubmit;
-    $('#btn-cancel').onclick = () => history.back();
-    $('#btn-add').onclick = () => (location.hash = '#/novo');
-    $('#btn-back').onclick = () => (history.length > 1 ? history.back() : (location.hash = '#/'));
+    form.addEventListener('input', () => (dirty = true));
+    $('#btn-cancel').onclick = () => go(backTarget(), { replace: true });
+    $('#btn-back').onclick = () => go(backTarget(), { replace: true });
+
+    // Anterior/seguinte sem encher o histórico.
+    document.addEventListener('click', (e) => {
+      const a = e.target.closest('[data-pager]');
+      if (!a) return;
+      e.preventDefault();
+      go(a.getAttribute('href'), { replace: true });
+    });
+
+    // Setas do teclado no detalhe.
+    document.addEventListener('keydown', (e) => {
+      if (currentView !== 'detail' || e.target.closest('input, textarea, select')) return;
+      if (e.key === 'ArrowLeft') adjacent(-1);
+      if (e.key === 'ArrowRight') adjacent(1);
+    });
+
+    // Deslizar o dedo no detalhe: esquerda = seguinte, direita = anterior.
+    let touch = null;
+    views.detail.addEventListener('touchstart', (e) => {
+      const t = e.touches[0];
+      touch = e.touches.length === 1 ? { x: t.clientX, y: t.clientY } : null;
+    }, { passive: true });
+    views.detail.addEventListener('touchend', (e) => {
+      if (!touch) return;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - touch.x, dy = t.clientY - touch.y;
+      touch = null;
+      if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.5) adjacent(dx < 0 ? 1 : -1);
+    }, { passive: true });
+
+    window.addEventListener('beforeunload', (e) => {
+      if (currentView === 'form' && dirty) { e.preventDefault(); e.returnValue = ''; }
+    });
     ['input', 'change'].forEach((ev) => {
       $('#search').addEventListener(ev, renderList);
       $('#filter-type').addEventListener(ev, renderList);

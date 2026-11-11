@@ -51,16 +51,17 @@
         <p>Ainda não registou nenhum vinho.</p>
         <p>Toque em <strong>+</strong> para adicionar o primeiro.</p>
       </div>
-      <button id="btn-add" class="fab" aria-label="Adicionar vinho">+</button>
     </section>
 
     <!-- DETALHE -->
     <section id="view-detail" class="view" hidden>
+      <div id="detail-pager"></div>
       <div id="detail"></div>
     </section>
 
     <!-- FORMULÁRIO -->
     <section id="view-form" class="view" hidden>
+      <div id="form-pager"></div>
       <form id="wine-form" novalidate>
         <div class="photo-picker">
           <img id="photo-preview" alt="" hidden>
@@ -141,6 +142,11 @@
       </form>
     </section>
   </main>
+
+  <nav class="bottom-nav" aria-label="Navegação principal">
+    <a href="#/" data-nav="list"><span aria-hidden="true">🍷</span>Vinhos</a>
+    <a href="#/novo" data-nav="new" class="nav-add"><span aria-hidden="true">＋</span>Adicionar</a>
+  </nav>
 
   <datalist id="dl-producer"></datalist>
   <datalist id="dl-region"></datalist>
